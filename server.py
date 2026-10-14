@@ -13,6 +13,7 @@ relevant passages quoted from the documents instead of a written answer.
 import base64
 import binascii
 import difflib
+import http.client
 import io
 import json
 import math
@@ -21,6 +22,7 @@ import re
 import ssl
 import sys
 import time
+import traceback
 import unicodedata
 import urllib.error
 import urllib.request
@@ -73,7 +75,9 @@ def setting(name: str, default: str = "") -> str:
 
 
 def api_key() -> str:
-    return setting("GEMINI_API_KEY") or setting("GOOGLE_API_KEY")
+    # Keys pasted into a hosting dashboard often carry a stray newline, space or quotes.
+    key = setting("GEMINI_API_KEY") or setting("GOOGLE_API_KEY")
+    return key.strip().strip("'\"").strip()
 
 
 # --- Ingestion: load, clean, chunk ---
@@ -502,6 +506,9 @@ def gemini_request(method: str, path: str, payload: dict | None = None, timeout:
         raise GeminiError(e.code, str(message)) from None
     except (urllib.error.URLError, TimeoutError) as e:
         raise GeminiError(None, str(e)) from None
+    except (OSError, ValueError, http.client.HTTPException) as e:
+        # e.g. a malformed key in the request header, or the connection dropping mid-reply
+        raise GeminiError(None, f"{type(e).__name__}: {e}") from None
 
 
 _models: dict = {}
@@ -1045,10 +1052,12 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = self.path.split("?", 1)[0]
         if path == "/api/health":
+            key = api_key()
             return self._json(200, {
                 "documents": sorted({c["file"] for c in self.index.chunks}),
                 "chunks": len(self.index.chunks),
-                "mode": "llm" if api_key() else "extractive",
+                "mode": "llm" if key else "extractive",
+                "keyLength": len(key),            # helps spot a mis-pasted key without revealing it
             })
         # Only the UI files are served; .env, the server source and the PDFs are not.
         if path in STATIC_FILES:
@@ -1075,8 +1084,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(200, {"ok": True})
             self._json(200, answer(self.index, body))
         except Exception as e:  # keep the server up; surface the failure to the UI
-            print(f"{path} error: {e!r}", file=sys.stderr)
-            self._json(500, {"error": "The RAG server hit an internal error. Check its terminal output."})
+            traceback.print_exc()
+            self._json(500, {"error": "Sorry, something went wrong on our side. Please try again in a moment.",
+                             "detail": f"{type(e).__name__}: {str(e)[:200]}"})
 
     def log_message(self, fmt, *args):
         if self.path.startswith("/api/"):
