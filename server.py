@@ -1019,7 +1019,15 @@ def save_feedback(body: dict):
 # --- HTTP ---
 
 class Handler(BaseHTTPRequestHandler):
-    index: BM25Index = None
+    _index: BM25Index = None
+
+    @property
+    def index(self) -> BM25Index:
+        """Built on first use, so the handler works however it is started: npm run dev, the api/ entry
+        points, or a host that loads this file's Handler class directly (as Vercel does)."""
+        if Handler._index is None:
+            Handler._index = BM25Index(build_chunks(KNOWLEDGE_DIR))
+        return Handler._index
 
     def _cors(self):
         # The UI may be opened from another local server (e.g. VS Code Live Server on :5500).
@@ -1050,6 +1058,13 @@ class Handler(BaseHTTPRequestHandler):
         self._send(status, json.dumps(payload).encode("utf-8"), "application/json")
 
     def do_GET(self):
+        try:
+            self._get()
+        except Exception as e:
+            traceback.print_exc()
+            self._json(500, {"error": "Sorry, something went wrong on our side.", "detail": f"{type(e).__name__}: {str(e)[:200]}"})
+
+    def _get(self):
         path = self.path.split("?", 1)[0]
         if path == "/api/health":
             key = api_key()
@@ -1096,15 +1111,13 @@ class Handler(BaseHTTPRequestHandler):
 def vercel_handler() -> type:
     """The request handler for a hosted deployment: the index is built once per instance (cold start)
     and only the /api routes are answered; the host serves the page files itself."""
-    if Handler.index is None:
-        Handler.index = BM25Index(build_chunks(KNOWLEDGE_DIR))
     return Handler
 
 
 def main():
     KNOWLEDGE_DIR.mkdir(parents=True, exist_ok=True)
     chunks = build_chunks(KNOWLEDGE_DIR)
-    Handler.index = BM25Index(chunks)
+    Handler._index = BM25Index(chunks)
     docs = sorted({c["file"] for c in chunks})
     print(f"Indexed {len(chunks)} chunks from {len(docs)} document(s): {', '.join(docs) or 'none'}")
     if not chunks:
