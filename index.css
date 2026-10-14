@@ -3107,3 +3107,199 @@ body,
 .assistant-avatar {
   background-color: #8f9090;
 }
+
+/* ==========================================================================
+   Responsiveness
+   ========================================================================== */
+
+/* Phones: the browser's address bar comes and goes, so size to the visible screen */
+.app-container {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* Long product codes and tables never push a bubble wider than the screen */
+.message-row .message-bubble {
+  min-width: 0;              /* lets a bubble shrink below its widest table */
+}
+
+.message-row .markdown-body,
+.message-row .user-text {
+  overflow-wrap: anywhere;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.message-row.assistant .markdown-body table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
+}
+
+/* Large screens: keep lines a comfortable reading length */
+@media (min-width: 1600px) {
+  .page-header,
+  .page-body {
+    max-width: 1240px;
+  }
+
+  .page-body {
+    grid-template-columns: 320px minmax(0, 1fr);
+  }
+}
+
+/* Laptops and small desktops: a narrower information panel */
+@media (max-width: 1180px) and (min-width: 1001px) {
+  .page-body {
+    grid-template-columns: 250px minmax(0, 1fr);
+    gap: 22px;
+  }
+
+  .info-title {
+    font-size: 24px;
+  }
+}
+
+/* Tablets */
+@media (max-width: 1000px) and (min-width: 769px) {
+  .main-content {
+    padding: 0 18px 16px;
+  }
+
+  .message-row.assistant .message-bubble,
+  .message-row.user .message-bubble {
+    max-width: 84%;
+  }
+}
+
+/* Phones */
+@media (max-width: 768px) {
+  .page-brand .brand-mark {
+    width: 54px;
+    height: 36px;
+    border-radius: 6px;
+  }
+
+  .page-header {
+    padding: 8px 14px;
+    padding-top: max(8px, env(safe-area-inset-top));
+  }
+
+  .chat-header {
+    height: 56px;
+    padding: 0 6px 0 12px;
+  }
+
+  .bot-avatar {
+    width: 34px;
+    height: 34px;
+  }
+
+  .assistant-avatar {
+    width: 26px;
+    height: 26px;
+  }
+
+  .message-row {
+    gap: 8px;
+  }
+
+  .message-row.assistant .markdown-body,
+  .message-row.user .message-bubble {
+    padding: 9px 13px;
+  }
+
+  /* 16px text stops phones zooming in when the message box is tapped */
+  #prompt-input,
+  .message-row.assistant .markdown-body,
+  .message-row.user .user-text {
+    font-size: 16px;
+  }
+
+  .input-section {
+    padding: 8px 10px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+
+  .disclaimer-text {
+    font-size: 10.5px;
+    line-height: 1.35;
+  }
+
+  .quick-replies {
+    gap: 6px;
+  }
+
+  .quick-reply {
+    padding: 8px 13px;      /* comfortable to tap */
+  }
+
+  .icon-btn,
+  .msg-action-btn {
+    min-width: 40px;
+    min-height: 40px;
+  }
+}
+
+/* Small phones */
+@media (max-width: 380px) {
+  .page-brand-name {
+    font-size: 14px;
+  }
+
+  .messages-container {
+    padding: 12px 8px 8px;
+  }
+
+  .message-row.assistant .message-bubble,
+  .message-row.user .message-bubble {
+    max-width: 90%;
+  }
+
+  .disclaimer-text {
+    display: none;
+  }
+}
+
+/* Phones held sideways and other short screens: give the conversation the room */
+@media (max-height: 520px) {
+  .page-header {
+    display: none;
+  }
+
+  .main-content {
+    padding: 0;
+  }
+
+  .page-body {
+    gap: 0;
+  }
+
+  .info-panel {
+    display: none;
+  }
+
+  .page-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chat-window {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .chat-header {
+    height: 50px;
+  }
+
+  .disclaimer-text {
+    display: none;
+  }
+
+  .messages-container {
+    padding-top: 10px;
+  }
+}
