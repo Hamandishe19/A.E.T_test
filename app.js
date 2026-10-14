@@ -720,10 +720,12 @@
     });
   }
 
-  // The built-in RAG server runs on port 3000. If the page was opened from another local
-  // server (e.g. VS Code Live Server), relative endpoints must still reach port 3000.
+  // Locally the RAG server runs on port 3000. If the page was opened from another local server
+  // (e.g. VS Code Live Server), relative endpoints must still reach port 3000. When hosted
+  // (e.g. Vercel), the page and the API share one address, so relative endpoints are used as they are.
   function resolveEndpoint(endpoint) {
-    if (endpoint.startsWith('/') && window.location.port !== RAG_SERVER_PORT) {
+    const local = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    if (endpoint.startsWith('/') && local && window.location.port !== RAG_SERVER_PORT) {
       return `http://localhost:${RAG_SERVER_PORT}${endpoint}`;
     }
     return endpoint;
@@ -813,7 +815,7 @@
           saveConversations();
           return;
         }
-        fullAnswer = `> **Connection Warning:** Unable to reach the RAG endpoint (\`${state.settings.ragEndpoint}\`). Start the server with \`npm run dev\` and try again.`;
+        fullAnswer = `> **Connection Warning:** I couldn't reach our assistant service just now. Please try again in a moment.`;
       }
     } else {
       fullAnswer = generateIntelligentResponse(userPrompt, state.currentModel);

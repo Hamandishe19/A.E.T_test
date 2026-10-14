@@ -994,14 +994,18 @@ def answer(index: BM25Index, body: dict) -> dict:
 
 def save_feedback(body: dict):
     """Append a thumbs up/down to logs/feedback.jsonl for later review."""
-    LOG_DIR.mkdir(exist_ok=True)
+    log_dir = LOG_DIR
+    try:
+        log_dir.mkdir(exist_ok=True)
+    except OSError:
+        log_dir = Path("/tmp")          # hosted (e.g. Vercel): the project folder is read-only
     record = {
         "ts": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "rating": body.get("rating") if body.get("rating") in ("up", "down") else None,
         "question": str(body.get("question") or "")[:2000],
         "answer": str(body.get("answer") or "")[:8000],
     }
-    with open(LOG_DIR / "feedback.jsonl", "a", encoding="utf-8") as f:
+    with open(log_dir / "feedback.jsonl", "a", encoding="utf-8") as f:
         f.write(json.dumps(record) + "\n")
 
 
@@ -1077,6 +1081,14 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         if self.path.startswith("/api/"):
             super().log_message(fmt, *args)
+
+
+def vercel_handler() -> type:
+    """The request handler for a hosted deployment: the index is built once per instance (cold start)
+    and only the /api routes are answered; the host serves the page files itself."""
+    if Handler.index is None:
+        Handler.index = BM25Index(build_chunks(KNOWLEDGE_DIR))
+    return Handler
 
 
 def main():
